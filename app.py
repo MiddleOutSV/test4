@@ -1,11 +1,16 @@
-import streamlit as st
 import yfinance as yf
 from transformers import pipeline
+import streamlit as st
+import requests
 
-# 뉴스 요약 함수
 def fetch_news(ticker, period='1d'):
     stock = yf.Ticker(ticker)
-    news = stock.news
+    try:
+        news = stock.news
+    except requests.exceptions.JSONDecodeError:
+        st.error("뉴스 데이터를 가져오는 데 문제가 발생했습니다. 잠시 후 다시 시도하세요.")
+        return []
+    
     if period == '1d':
         return news[:10]  # 뉴스 목록에서 최근 10개를 가져옵니다.
     elif period == '1wk':
@@ -18,11 +23,13 @@ def summarize_news(news_list):
     summarizer = pipeline("summarization")
     summaries = []
     for news in news_list:
-        summary = summarizer(news['summary'], max_length=50, min_length=25, do_sample=False)[0]['summary_text']
+        try:
+            summary = summarizer(news['summary'], max_length=50, min_length=25, do_sample=False)[0]['summary_text']
+        except Exception as e:
+            summary = "요약을 생성하는 데 실패했습니다."
         summaries.append({"title": news['title'], "summary": summary, "link": news['link']})
     return summaries
 
-# Streamlit 앱
 def main():
     st.title('주식 뉴스 요약 앱')
     
@@ -32,13 +39,14 @@ def main():
     if st.button('뉴스 가져오기'):
         with st.spinner('뉴스를 가져오는 중...'):
             news_list = fetch_news(ticker, period)
-            summaries = summarize_news(news_list)
-            st.success('뉴스 가져오기 완료!')
-            
-            for news in summaries:
-                st.subheader(news['title'])
-                st.write(news['summary'])
-                st.write(f"[링크]({news['link']})")
+            if news_list:
+                summaries = summarize_news(news_list)
+                st.success('뉴스 가져오기 완료!')
+                
+                for news in summaries:
+                    st.subheader(news['title'])
+                    st.write(news['summary'])
+                    st.write(f"[링크]({news['link']})")
 
 if __name__ == '__main__':
     main()
