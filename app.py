@@ -1,6 +1,8 @@
+import streamlit as st
 import yfinance as yf
 from transformers import pipeline
 
+# 뉴스 요약 함수
 def fetch_news(ticker, period='1d'):
     stock = yf.Ticker(ticker)
     news = stock.news
@@ -20,9 +22,7 @@ def summarize_news(news_list):
         summaries.append({"title": news['title'], "summary": summary, "link": news['link']})
     return summaries
 
-
-import streamlit as st
-
+# Streamlit 앱
 def main():
     st.title('주식 뉴스 요약 앱')
     
